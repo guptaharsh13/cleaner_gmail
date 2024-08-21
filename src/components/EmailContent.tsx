@@ -1,4 +1,4 @@
-"use client";
+// src/components/EmailContent.tsx
 
 import React from "react";
 import DOMPurify from "dompurify";
@@ -6,7 +6,8 @@ import DOMPurify from "dompurify";
 interface Email {
   id: string;
   subject: string;
-  body: string;
+  textContent: string;
+  htmlContent: string;
 }
 
 interface EmailContentProps {
@@ -31,21 +32,20 @@ const EmailContent: React.FC<EmailContentProps> = ({
   }
 
   const renderEmailContent = () => {
-    if (!email.body || email.body.trim() === "") {
+    if (!email.htmlContent && !email.textContent) {
       return <p className="text-gray-500 italic">This email has no content.</p>;
     }
 
-    // Check if the content is HTML
-    if (email.body.trim().startsWith("<")) {
-      // If it's HTML, sanitize it and render
+    if (email.htmlContent) {
       return (
         <div
-          dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.body) }}
+          dangerouslySetInnerHTML={{
+            __html: DOMPurify.sanitize(email.htmlContent),
+          }}
         />
       );
     } else {
-      // If it's plain text, convert line breaks to <br> tags and render
-      const htmlContent = email.body.replace(/\n/g, "<br>");
+      const htmlContent = email.textContent.replace(/\n/g, "<br>");
       return (
         <div
           dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(htmlContent) }}

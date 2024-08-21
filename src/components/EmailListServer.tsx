@@ -1,7 +1,10 @@
+// src/components/EmailListServer.tsx
+
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../lib/auth";
 import { google } from "googleapis";
+import { authOptions } from "../lib/auth";
 import EmailListClient from "./EmailListClient";
+import { extractEmailContent, EmailPart } from "../utils/emailExtractor";
 
 async function getEmails() {
   const session = await getServerSession(authOptions);
@@ -25,42 +28,40 @@ async function getEmails() {
     const messages = response.data.messages || [];
     const emails = await Promise.all(
       messages.map(async (message) => {
-        const fullMessage = await gmail.users.messages.get({
-          userId: "me",
-          id: message.id!,
-          format: "full",
-        });
+        try {
+          const fullMessage = await gmail.users.messages.get({
+            userId: "me",
+            id: message.id!,
+            format: "full",
+          });
 
-        const headers = fullMessage.data.payload?.headers;
-        const subject =
-          headers?.find((header) => header.name === "Subject")?.value ||
-          "No Subject";
+          const headers = fullMessage.data.payload?.headers;
+          const subject =
+            headers?.find((header) => header.name === "Subject")?.value ||
+            "No Subject";
 
-        let body = "";
-        if (fullMessage.data.payload?.parts) {
-          const textPart = fullMessage.data.payload.parts.find(
-            (part) =>
-              part.mimeType === "text/plain" || part.mimeType === "text/html"
+          const { textContent, htmlContent } = extractEmailContent(
+            fullMessage.data.payload as EmailPart
           );
-          if (textPart && textPart.body?.data) {
-            body = Buffer.from(textPart.body.data, "base64").toString("utf-8");
-          }
-        } else if (fullMessage.data.payload?.body?.data) {
-          body = Buffer.from(
-            fullMessage.data.payload.body.data,
-            "base64"
-          ).toString("utf-8");
-        }
 
-        return {
-          id: message.id!,
-          subject,
-          body,
-        };
+          return {
+            id: message.id!,
+            subject,
+            textContent,
+            htmlContent,
+          };
+        } catch (error) {
+          console.error(`Error processing message ${message.id}:`, error);
+          return null;
+        }
       })
     );
 
-    return { emails };
+    const validEmails = emails.filter(
+      (email): email is NonNullable<typeof email> => email !== null
+    );
+
+    return { emails: validEmails };
   } catch (error) {
     console.error("Error fetching emails:", error);
     return { error: "Failed to fetch emails" };
