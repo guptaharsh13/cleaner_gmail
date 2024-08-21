@@ -8,6 +8,8 @@ interface Email {
   subject: string;
   textContent: string;
   htmlContent: string;
+  from: string;
+  date: Date;
 }
 
 interface EmailContentProps {
@@ -56,11 +58,15 @@ const EmailContent: React.FC<EmailContentProps> = ({
 
   return (
     <div className="w-2/3 h-full overflow-y-auto bg-white text-gray-800">
-      <div className="p-6 border-b border-gray-200">
-        <h2 className="text-2xl font-bold mb-4 text-gray-800">
-          {email.subject}
-        </h2>
-        <div className="flex space-x-2">
+      <div className="p-4 border-b border-gray-200">
+        <h2 className="text-xl mb-2 text-gray-800">{email.subject}</h2>
+        <p className="text-sm text-gray-600">
+          <span className="font-bold">From:</span> {email.from}
+        </p>
+        <p className="text-sm text-gray-600">
+          <span className="font-bold">Date:</span> {email.date.toLocaleString()}
+        </p>
+        <div className="mt-2 flex space-x-2">
           <button
             onClick={() => onMarkAsRead(email.id)}
             className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded text-sm"
@@ -75,7 +81,7 @@ const EmailContent: React.FC<EmailContentProps> = ({
           </button>
         </div>
       </div>
-      <div className="p-6">{renderEmailContent()}</div>
+      <div className="p-4">{renderEmailContent()}</div>
     </div>
   );
 };

@@ -6,7 +6,16 @@ import { authOptions } from "../lib/auth";
 import EmailListClient from "./EmailListClient";
 import { extractEmailContent, EmailPart } from "../utils/emailExtractor";
 
-async function getEmails() {
+interface Email {
+  id: string;
+  subject: string;
+  textContent: string;
+  htmlContent: string;
+  from: string;
+  date: Date;
+}
+
+async function getEmails(): Promise<{ emails: Email[] } | { error: string }> {
   const session = await getServerSession(authOptions);
 
   if (!session) {
@@ -22,12 +31,12 @@ async function getEmails() {
     const response = await gmail.users.messages.list({
       userId: "me",
       q: "is:unread",
-      maxResults: 10,
+      maxResults: 50, // Increased to get more emails
     });
 
     const messages = response.data.messages || [];
     const emails = await Promise.all(
-      messages.map(async (message) => {
+      messages.map(async (message): Promise<Email | null> => {
         try {
           const fullMessage = await gmail.users.messages.get({
             userId: "me",
@@ -39,6 +48,13 @@ async function getEmails() {
           const subject =
             headers?.find((header) => header.name === "Subject")?.value ||
             "No Subject";
+          const from =
+            headers?.find((header) => header.name === "From")?.value ||
+            "Unknown";
+          const dateStr = headers?.find(
+            (header) => header.name === "Date"
+          )?.value;
+          const date = dateStr ? new Date(dateStr) : new Date();
 
           const { textContent, htmlContent } = extractEmailContent(
             fullMessage.data.payload as EmailPart
@@ -49,6 +65,8 @@ async function getEmails() {
             subject,
             textContent,
             htmlContent,
+            from,
+            date,
           };
         } catch (error) {
           console.error(`Error processing message ${message.id}:`, error);
@@ -58,8 +76,11 @@ async function getEmails() {
     );
 
     const validEmails = emails.filter(
-      (email): email is NonNullable<typeof email> => email !== null
+      (email): email is Email => email !== null
     );
+
+    // Sort emails in reverse chronological order
+    validEmails.sort((a, b) => b.date.getTime() - a.date.getTime());
 
     return { emails: validEmails };
   } catch (error) {
@@ -69,11 +90,11 @@ async function getEmails() {
 }
 
 export default async function EmailListServer() {
-  const { emails, error } = await getEmails();
+  const result = await getEmails();
 
-  if (error) {
-    return <div>Error: {error}</div>;
+  if ("error" in result) {
+    return <div>Error: {result.error}</div>;
   }
 
-  return <EmailListClient initialEmails={emails} />;
+  return <EmailListClient initialEmails={result.emails} />;
 }

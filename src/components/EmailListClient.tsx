@@ -6,7 +6,10 @@ import EmailContent from "./EmailContent";
 interface Email {
   id: string;
   subject: string;
-  body: string;
+  textContent: string;
+  htmlContent: string;
+  from: string;
+  date: Date;
 }
 
 interface EmailListClientProps {
@@ -124,19 +127,21 @@ export default function EmailListClient({
   };
 
   return (
-    <div className="flex h-full">
-      <div className="w-1/3 h-full overflow-y-auto border-r border-gray-200 bg-gray-50">
+    <div className="flex h-full bg-gray-900 text-gray-300">
+      <div className="w-1/3 h-full overflow-y-auto border-r border-gray-700">
         {emails.map((email) => (
           <div
             key={email.id}
-            className={`p-4 cursor-pointer border-b border-gray-200 ${
-              email.id === selectedEmailId ? "bg-blue-100" : "hover:bg-gray-100"
+            className={`p-3 cursor-pointer border-b border-gray-700 ${
+              email.id === selectedEmailId ? "bg-gray-800" : "hover:bg-gray-800"
             }`}
             onClick={() => setSelectedEmailId(email.id)}
           >
-            <h3 className="font-semibold text-gray-800 truncate">
-              {email.subject}
-            </h3>
+            <h3 className="text-sm text-gray-300 truncate">{email.subject}</h3>
+            <p className="text-xs text-gray-500 truncate">{email.from}</p>
+            <p className="text-xs text-gray-500">
+              {email.date.toLocaleString()}
+            </p>
           </div>
         ))}
       </div>

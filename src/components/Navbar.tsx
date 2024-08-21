@@ -14,7 +14,12 @@ const Navbar: React.FC = () => {
           <div className="text-sm">
             <span className="font-bold">Keyboard controls:</span>
             <span className="ml-2">
-              (R) Mark as Read | (U) Unsubscribe | ↑↓ Navigate
+              <span className="font-bold">R</span>{" "}
+              <span className=" text-gray-300">Mark as Read</span> |
+              <span className="font-bold"> U</span>{" "}
+              <span className=" text-gray-300">Unsubscribe</span> |
+              <span className="font-bold"> ↑↓</span>{" "}
+              <span className=" text-gray-300">Navigate</span>
             </span>
           </div>
           {session ? (
