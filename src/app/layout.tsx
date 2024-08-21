@@ -5,8 +5,8 @@ import ClientProvider from "../components/ClientProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Gmail-like App",
-  description: "A minimal Gmail-like application",
+  title: "Cleaner Gmail",
+  description: "A cleaner Gmail alternative",
 };
 
 export default function RootLayout({

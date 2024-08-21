@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { Email } from "../types";
 
 export function useGmailApi() {
   const [emails, setEmails] = useState<Email[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { data: session } = useSession();
+  const [notification, setNotification] = useState<string | null>(null);
+  const { data: session, status } = useSession();
 
   useEffect(() => {
     if (session) {
@@ -16,22 +17,40 @@ export function useGmailApi() {
 
   const fetchEmails = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await fetch("/api/emails");
+      if (!response.ok) {
+        if (response.status === 401) {
+          signOut();
+          throw new Error("Authentication failed. Please sign in again.");
+        }
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
-      setEmails(data);
-      setLoading(false);
+      if (Array.isArray(data)) {
+        setEmails(data);
+      } else {
+        throw new Error("Invalid data format received from server");
+      }
     } catch (err) {
-      setError("Failed to fetch emails");
+      setError(err.message || "Failed to fetch emails");
+      console.error("Error fetching emails:", err);
+    } finally {
       setLoading(false);
     }
   };
 
   const markAsRead = async (emailId: string) => {
     try {
+      setEmails((prevEmails) =>
+        prevEmails.filter((email) => email.id !== emailId)
+      );
       await fetch(`/api/emails/${emailId}/read`, { method: "POST" });
-      setEmails(emails.filter((email) => email.id !== emailId));
     } catch (err) {
+      console.error("Error marking email as read:", err);
       setError("Failed to mark email as read");
+      fetchEmails(); // Refresh the email list
     }
   };
 
@@ -51,12 +70,23 @@ export function useGmailApi() {
           : `${window.location.origin}${cleanLink}`;
         window.open(finalLink, "_blank");
       } else {
-        setError("No unsubscribe link found");
+        setNotification("No unsubscribe link found");
+        setTimeout(() => setNotification(null), 3000);
       }
     } catch (err) {
-      setError("Failed to unsubscribe");
+      console.error("Error unsubscribing:", err);
+      setNotification("Failed to unsubscribe");
+      setTimeout(() => setNotification(null), 3000);
     }
   };
 
-  return { emails, loading, error, markAsRead, unsubscribe };
+  return {
+    emails,
+    loading,
+    error,
+    notification,
+    markAsRead,
+    unsubscribe,
+    fetchEmails,
+  };
 }
